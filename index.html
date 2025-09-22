@@ -160,7 +160,8 @@
 const SUPABASE_URL = "https://ipzsytmlbdnlwtdxbfgx.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenN5dG1sYmRubHd0ZHhiZmd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMTcwNjQsImV4cCI6MjA3MzU5MzA2NH0.3dd66rBy4uCL6w7x2C-Mp3I-V82OGlb2cLLPH-zPlfs";
 
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
 // Local app state (keperluan UI dan cache)
 const state = {
@@ -1452,3 +1453,4 @@ function bindGlobalUIEvents() {
 </script>
 </body>
 </html>
+
