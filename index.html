@@ -204,6 +204,66 @@ const formatTimestamp = (isoString) => {
 /* ===========================================================
    CRUD helpers (Supabase)
    =========================================================== */
+
+async function addKelasReguler(newKelas) {
+  const { error } = await supabase.from('kelas_reguler').insert([{
+    name: newKelas.name
+  }]);
+
+  if (error) {
+    console.error("Insert kelas_reguler error:", error.message);
+    Swal.fire("Error", error.message, "error");
+  } else {
+    Swal.fire("Sukses", "Kelas Reguler berhasil disimpan", "success");
+  }
+}
+
+async function addKelasTahfizh(newKelas) {
+  const { error } = await supabase.from('kelas_tahfizh').insert([{
+    name: newKelas.name
+  }]);
+
+  if (error) {
+    console.error("Insert kelas_reguler error:", error.message);
+    Swal.fire("Error", error.message, "error");
+  } else {
+    Swal.fire("Sukses", "Kelas Reguler berhasil disimpan", "success");
+  }
+}
+
+async function addPengajar(newPengajar) {
+  const { error } = await supabase.from('pengajar').insert([{
+    name: newPengajar.name,
+    nip: newPengajar.nip,
+    phone: newPengajar.phone
+  }]);
+
+  if (error) {
+    console.error("Insert pengajar error:", error.message);
+    Swal.fire("Error", error.message, "error");
+  } else {
+    Swal.fire("Sukses", "Pengajar berhasil disimpan", "success");
+  }
+}
+
+async function addSiswa(newSiswa) {
+  const { error } = await supabase.from('siswa').insert([{
+    name: newSiswa.name,
+    nisn: newSiswa.nisn,
+    class_reguler_id: newSiswa.classRegulerId || null,
+    class_tahfizh_id: newSiswa.classTahfizhId || null,
+    teacher_id: newSiswa.teacherId || null
+  }]);
+
+  if (error) {
+    console.error("Insert siswa error:", error.message);
+    Swal.fire("Error", error.message, "error");
+  } else {
+    Swal.fire("Sukses", "Siswa berhasil disimpan", "success");
+  }
+}
+
+    
 async function fetchTable(table, select = '*', orderBy = null) {
     try {
         let q = supabase.from(table).select(select);
@@ -1453,4 +1513,5 @@ function bindGlobalUIEvents() {
 </script>
 </body>
 </html>
+
 
