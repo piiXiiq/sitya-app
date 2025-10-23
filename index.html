@@ -21,7 +21,7 @@
         .sitya-green { background-color: #0A6847; }
         .sitya-gold { background-color: #F3CA52; }
         .text-sitya-green { color: #0A6847; }
-        .text-sitya-gold { color: #F3CA52; }
+        .text-sitAya-gold { color: #F3CA52; }
         .border-sitya-green { border-color: #0A6847; }
         .border-sitya-gold { border-color: #F3CA52; }
 
@@ -376,20 +376,20 @@
                                     <div id="iqro-fields" class="hidden space-y-4">
                                          <div>
                                             <label class="block text-sm font-medium text-gray-700">Jilid</label>
-                                            <input type="number" id="iqro-jilid" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Contoh: 4" required>
+                                            <input type="number" id="iqro-jilid" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Contoh: 4">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700">Halaman</label>
-                                            <input type="number" id="iqro-halaman" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Contoh: 15" required>
+                                            <input type="number" id="iqro-halaman" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Contoh: 15">
                                         </div>
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Baris dari</label>
-                                                <input type="number" id="iqro-baris-dari" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Awal" required>
+                                                <input type="number" id="iqro-baris-dari" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Awal">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Sampai</label>
-                                                <input type="number" id="iqro-baris-sampai" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Akhir" required>
+                                                <input type="number" id="iqro-baris-sampai" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Akhir">
                                             </div>
                                         </div>
                                     </div>
@@ -397,17 +397,17 @@
                                     <div id="surat-ayat-fields" class="hidden space-y-4">
                                         <div class="relative">
                                             <label class="block text-sm font-medium text-gray-700">Surat</label>
-                                            <input type="text" id="surat-ayat-surat" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Ketik nama surat..." autocomplete="off" required>
+                                            <input type="text" id="surat-ayat-surat" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Ketik nama surat..." autocomplete="off">
                                              <div id="surat-options-container" class="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-48 overflow-y-auto"></div>
                                         </div>
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Ayat dari</label>
-                                                <input type="number" id="surat-ayat-dari" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Awal" required>
+                                                <input type="number" id="surat-ayat-dari" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Awal">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Sampai</label>
-                                                <input type="number" id="surat-ayat-sampai" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Akhir" required>
+                                                <input type="number" id="surat-ayat-sampai" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sitya-green focus:ring-sitya-green sm:text-sm" placeholder="Akhir">
                                             </div>
                                         </div>
                                     </div>
@@ -1628,6 +1628,17 @@
             const formContainer = document.getElementById('form-penilaian-container');
             const iqroFields = document.getElementById('iqro-fields');
             const suratAyatFields = document.getElementById('surat-ayat-fields');
+            
+            // Mengatur input Iqro
+            document.getElementById('iqro-jilid').required = (this.value === 'Iqro');
+            document.getElementById('iqro-halaman').required = (this.value === 'Iqro');
+            document.getElementById('iqro-baris-dari').required = (this.value === 'Iqro');
+            document.getElementById('iqro-baris-sampai').required = (this.value === 'Iqro');
+
+            // Mengatur input Surat
+            document.getElementById('surat-ayat-surat').required = (this.value !== 'Iqro' && this.value !== '');
+            document.getElementById('surat-ayat-dari').required = (this.value !== 'Iqro' && this.value !== '');
+            document.getElementById('surat-ayat-sampai').required = (this.value !== 'Iqro' && this.value !== '');
             
             const selectedValue = this.value;
             displayLastAssessment();
