@@ -1531,8 +1531,8 @@
             if (user.role === 'Guru') {
                 adminOnlyElements.forEach(el => el.classList.add('hidden'));
                 guruOnlyElements.forEach(el => el.classList.remove('hidden')); // Show guru elements
-                window.location.hash = '#penilaian';
-                showPage('#penilaian');
+                window.location.hash = '#dashboard'; // Ganti ke dashboard
+                showPage('#dashboard'); // Ganti ke dashboard
             } else { // Admin
                 adminOnlyElements.forEach(el => el.classList.remove('hidden'));
                 guruOnlyElements.forEach(el => el.classList.add('hidden')); // Hide guru elements
