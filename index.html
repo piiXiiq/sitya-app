@@ -21,7 +21,7 @@
         .sitya-green { background-color: #0A6847; }
         .sitya-gold { background-color: #F3CA52; }
         .text-sitya-green { color: #0A6847; }
-        .text-sitAya-gold { color: #F3CA52; }
+        .text-sitya-gold { color: #F3CA52; }
         .border-sitya-green { border-color: #0A6847; }
         .border-sitya-gold { border-color: #F3CA52; }
 
@@ -279,6 +279,16 @@
                     <!-- Dashboard Content -->
                     <div id="dashboard" class="page-content">
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Kartu Statistik Siswa Bimbingan (Hanya untuk Guru) -->
+                            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center hidden" data-role="guru">
+                                <div class="p-4 rounded-full sitya-green text-white mr-4"><i class="fas fa-users fa-2x"></i></div>
+                                <div>
+                                    <p class="text-gray-500">Siswa Bimbingan</p>
+                                    <p class="text-3xl font-bold text-gray-800" id="total-siswa-bimbingan">0</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Kartu Statistik Admin -->
                             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center" data-role="admin">
                                 <div class="p-4 rounded-full sitya-green text-white mr-4"><i class="fas fa-user-graduate fa-2x"></i></div>
                                 <div>
@@ -300,6 +310,8 @@
                                     <p class="text-3xl font-bold text-gray-800" id="total-kelas">0</p>
                                 </div>
                             </div>
+                            
+                            <!-- Kartu Statistik Umum (Semua Role) -->
                             <div class="bg-white p-6 rounded-xl shadow-lg flex items-center">
                                 <div class="p-4 rounded-full sitya-green text-white mr-4"><i class="fas fa-book-open fa-2x"></i></div>
                                 <div>
@@ -798,6 +810,7 @@
     let kelasTahfizhData = [];
     let penilaianData = [];
     let userData = [];
+    let currentUser = null; // Made global for easier access
     const daftarSurat = [
         "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah",
         "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
@@ -1389,7 +1402,7 @@
     }
 
     // --- RENDER & UPDATE ---
-    function updateDashboardStats() {
+    function updateDashboardStats(user) {
         document.getElementById('total-siswa').textContent = siswaData.length;
         document.getElementById('total-pengajar').textContent = pengajarData.length;
         document.getElementById('total-kelas').textContent = kelasRegulerData.length + kelasTahfizhData.length;
@@ -1398,6 +1411,15 @@
         const todayString = today.toISOString().split('T')[0];
         const countPenilaianHariIni = penilaianData.filter(p => p.tanggal.startsWith(todayString)).length;
         document.getElementById('total-penilaian-hari-ini').textContent = countPenilaianHariIni;
+        
+        // --- NEW GURU STATS ---
+        if (user && user.role === 'Guru') {
+            const currentPengajar = pengajarData.find(p => p.nama === user.nama);
+            if (currentPengajar) {
+                const jumlahBimbingan = siswaData.filter(s => s.pengajar_id === currentPengajar.id).length;
+                document.getElementById('total-siswa-bimbingan').textContent = jumlahBimbingan;
+            }
+        }
     }
 
     async function renderAll() {
@@ -1405,7 +1427,7 @@
         renderPengajarTable();
         renderKelasTables();
         renderPenggunaTable();
-        updateDashboardStats();
+        updateDashboardStats(currentUser); // Pass currentUser
         setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaData, displayLastAssessment).populate();
         setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaData).populate();
         setupSearchableDropdown('public-student-search-input', 'public-student-options-container', siswaData).populate();
@@ -1468,7 +1490,7 @@
                 detailText = `${terakhir.surat || '-'} Ayat ${terakhir.ayat_dari || '-'}-${terakhir.ayat_sampai || '-'}`;
             }
             riwayatContent.innerHTML = `
-                <span class="font-medium">${new Date(terakhir.tanggal).toLocaleDateString('id-ID')}:</span> ${detailText}
+                <span class="font-medium">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}:</span> ${detailText}
                 <br>
                 <span class="font-medium">Hasil:</span> ${terakhir.hasil}
                 <span class="italic text-gray-500">(dinilai oleh ${pengajar.nama || 'N/A'})</span>
@@ -1481,7 +1503,6 @@
 
     // --- NAVIGATION & INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
-        let currentUser = null;
         await fetchDataFromSupabase();
         await renderAll();
         
@@ -1503,17 +1524,23 @@
             const userInitial = user.nama.charAt(0).toUpperCase();
             document.getElementById('user-avatar').src = `https://placehold.co/100x100/0A6847/FFFFFF?text=${userInitial}`;
             document.getElementById('user-avatar').alt = `Avatar for ${user.nama}`;
+            
             const adminOnlyElements = document.querySelectorAll('[data-role="admin"]');
+            const guruOnlyElements = document.querySelectorAll('[data-role="guru"]'); // Get guru elements
+
             if (user.role === 'Guru') {
                 adminOnlyElements.forEach(el => el.classList.add('hidden'));
+                guruOnlyElements.forEach(el => el.classList.remove('hidden')); // Show guru elements
                 window.location.hash = '#penilaian';
                 showPage('#penilaian');
-            } else {
+            } else { // Admin
                 adminOnlyElements.forEach(el => el.classList.remove('hidden'));
+                guruOnlyElements.forEach(el => el.classList.add('hidden')); // Hide guru elements
                 window.location.hash = '#dashboard';
                 showPage('#dashboard');
             }
             populatePenilaiOptions(user); // Update penilai dropdown based on logged in user
+            updateDashboardStats(user); // <-- Pass the user
         }
 
         async function handleLogin(event) {
