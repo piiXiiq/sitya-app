@@ -320,6 +320,29 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- NEW: Tabel Siswa Bimbingan (Hanya Guru) -->
+                        <div class="mt-8 hidden" data-role="guru">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Siswa Bimbingan Anda</h3>
+                            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left" id="guru-siswa-table">
+                                        <thead class="bg-gray-100">
+                                            <tr>
+                                                <th class="p-3">No</th>
+                                                <th class="p-3">NISN</th>
+                                                <th class="p-3">Nama</th>
+                                                <th class="p-3">Kelas</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Data siswa bimbingan guru -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                     
                     <!-- Siswa Content -->
@@ -1400,6 +1423,33 @@
        
         hasilContainer.classList.remove('hidden');
     }
+    
+    // --- NEW: RENDER GURU'S SISWA TABLE ON DASHBOARD ---
+    function renderGuruSiswaTable(guruId) {
+        const tableBody = document.getElementById('guru-siswa-table')?.getElementsByTagName('tbody')[0];
+        if (!tableBody) return;
+
+        const mySiswa = siswaData.filter(s => s.pengajar_id == guruId);
+        
+        tableBody.innerHTML = '';
+        if (mySiswa.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">Anda belum memiliki siswa bimbingan.</td></tr>';
+            return;
+        }
+
+        mySiswa.forEach((siswa, index) => {
+            const newRow = tableBody.insertRow();
+            newRow.className = 'border-b';
+            const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
+            newRow.innerHTML = `
+                <td class="p-3">${index + 1}</td>
+                <td class="p-3">${siswa.nisn}</td>
+                <td class="p-3">${siswa.nama}</td>
+                <td class="p-3">${kelasGabungan}</td>
+            `;
+        });
+    }
+
 
     // --- RENDER & UPDATE ---
     function updateDashboardStats(user) {
@@ -1416,8 +1466,11 @@
         if (user && user.role === 'Guru') {
             const currentPengajar = pengajarData.find(p => p.nama === user.nama);
             if (currentPengajar) {
-                const jumlahBimbingan = siswaData.filter(s => s.pengajar_id === currentPengajar.id).length;
+                const jumlahBimbingan = siswaData.filter(s => s.pengajar_id == currentPengajar.id).length;
                 document.getElementById('total-siswa-bimbingan').textContent = jumlahBimbingan;
+                
+                // --- RENDER TABLE ---
+                renderGuruSiswaTable(currentPengajar.id);
             }
         }
     }
@@ -1531,15 +1584,15 @@
             if (user.role === 'Guru') {
                 adminOnlyElements.forEach(el => el.classList.add('hidden'));
                 guruOnlyElements.forEach(el => el.classList.remove('hidden')); // Show guru elements
-                window.location.hash = '#dashboard'; // Ganti ke dashboard
-                showPage('#dashboard'); // Ganti ke dashboard
+                window.location.hash = '#dashboard'; 
+                showPage('#dashboard'); 
             } else { // Admin
                 adminOnlyElements.forEach(el => el.classList.remove('hidden'));
                 guruOnlyElements.forEach(el => el.classList.add('hidden')); // Hide guru elements
                 window.location.hash = '#dashboard';
                 showPage('#dashboard');
             }
-            populatePenilaiOptions(user); // Update penilai dropdown based on logged in user
+            populatePenilaiOptions(user); 
             updateDashboardStats(user); // <-- Pass the user
         }
 
