@@ -503,9 +503,9 @@
                                             <th class="p-3">Nama Siswa</th>
                                             <th class="p-3">Detail Terakhir</th>
                                             <th class="p-3">Hasil</th>
-                                            <th class="p-3">Tanggal</th>
                                             <th class="p-3">Catatan</th>
                                             <th class="p-3">Dinilai oleh</th>
+                                            <th class="p-3">Tanggal</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1353,6 +1353,10 @@
                 dinilaiOlehSelect.innerHTML = `<option value="${currentPengajar.id}">${currentPengajar.nama}</option>`;
                 dinilaiOlehSelect.value = currentPengajar.id;
                 dinilaiOlehSelect.disabled = true;
+            } else {
+                // Fallback for user not in pengajar list (e.g., admin)
+                populateSelectWithOptions('dinilai-oleh', pengajarData, 'id', 'nama', 'Pilih pengajar...');
+                dinilaiOlehSelect.disabled = false;
             }
         } else {
             populateSelectWithOptions('dinilai-oleh', pengajarData, 'id', 'nama', 'Pilih pengajar...');
@@ -1554,13 +1558,13 @@
                     <td class="p-3">${siswa.nama}</td>
                     <td class="p-3">${detailText}</td>
                     <td class="p-3">${terakhir.hasil}</td>
-                    <td class="p-3">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                     <td class="p-3">${terakhir.catatan || '-'}</td>
                     <td class="p-3">${pengajar.nama || 'N/A'}</td>
+                    <td class="p-3">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                 `;
             } else {
                 newRow.innerHTML = `
-                    <td classs="p-3">${index + 1}</td>
+                    <td class="p-3">${index + 1}</td>
                     <td class="p-3">${siswa.nama}</td>
                     <td class="p-3 text-gray-400 italic">Belum ada data</td>
                     <td class="p-3 text-gray-400 italic">-</td>
