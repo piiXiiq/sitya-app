@@ -501,10 +501,11 @@
                                         <tr>
                                             <th class="p-3">No</th>
                                             <th class="p-3">Nama Siswa</th>
-                                            <th class="p-3">Kelas</th>
                                             <th class="p-3">Detail Terakhir</th>
                                             <th class="p-3">Hasil</th>
                                             <th class="p-3">Tanggal</th>
+                                            <th class="p-3">Catatan</th>
+                                            <th class="p-3">Dinilai oleh</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1505,25 +1506,25 @@
     window.renderRiwayatGuruTable = function(user) {
         const tableBody = document.getElementById('riwayat-guru-table')?.getElementsByTagName('tbody')[0];
         if (!tableBody || !user || user.role !== 'Guru') {
-            if(tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Hanya guru yang dapat melihat riwayat ini.</td></tr>';
+            if(tableBody) tableBody.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-gray-500">Hanya guru yang dapat melihat riwayat ini.</td></tr>';
             return;
         }
         
         const jenisPenilaian = document.getElementById('riwayat-jenis-penilaian').value;
         if (!jenisPenilaian) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Silakan pilih jenis penilaian untuk melihat riwayat.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-gray-500">Silakan pilih jenis penilaian untuk melihat riwayat.</td></tr>';
             return;
         }
 
         const currentPengajar = pengajarData.find(p => p.nama === user.nama);
         if (!currentPengajar) {
-             tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Data pengajar tidak ditemukan.</td></tr>';
+             tableBody.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-gray-500">Data pengajar tidak ditemukan.</td></tr>';
             return;
         }
         
         const mySiswa = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
         if (mySiswa.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Anda belum memiliki siswa bimbingan.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-gray-500">Anda belum memiliki siswa bimbingan.</td></tr>';
             return;
         }
         
@@ -1536,10 +1537,10 @@
 
             const newRow = tableBody.insertRow();
             newRow.className = 'border-b';
-            const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
             
             if (riwayatSiswa.length > 0) {
                 const terakhir = riwayatSiswa[0];
+                const pengajar = pengajarData.find(p => p.id === terakhir.penilai_id) || {};
                 let detailText = '';
                 if(terakhir.jenis_penilaian === 'Iqro') {
                     detailText = `Jilid ${terakhir.jilid || '-'}, Hal ${terakhir.halaman || '-'}`;
@@ -1551,17 +1552,19 @@
                 newRow.innerHTML = `
                     <td class="p-3">${index + 1}</td>
                     <td class="p-3">${siswa.nama}</td>
-                    <td class="p-3">${kelasGabungan}</td>
                     <td class="p-3">${detailText}</td>
                     <td class="p-3">${terakhir.hasil}</td>
                     <td class="p-3">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                    <td class="p-3">${terakhir.catatan || '-'}</td>
+                    <td class="p-3">${pengajar.nama || 'N/A'}</td>
                 `;
             } else {
                 newRow.innerHTML = `
                     <td classs="p-3">${index + 1}</td>
                     <td class="p-3">${siswa.nama}</td>
-                    <td class="p-3">${kelasGabungan}</td>
                     <td class="p-3 text-gray-400 italic">Belum ada data</td>
+                    <td class="p-3 text-gray-400 italic">-</td>
+                    <td class="p-3 text-gray-400 italic">-</td>
                     <td class="p-3 text-gray-400 italic">-</td>
                     <td class="p-3 text-gray-400 italic">-</td>
                 `;
@@ -1608,9 +1611,9 @@
         if (currentUser && currentUser.role === 'Guru') {
             const currentPengajar = pengajarData.find(p => p.nama === currentUser.nama);
             if (currentPengajar) {
+                // Filter for Laporan page
                 siswaBimbingan = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
                 const kelasSet = new Set(siswaBimbingan.map(s => s.kelas_tahfizh));
-                // Convert Set back to an array of objects for the populator function
                 kelasBimbingan = Array.from(kelasSet).map(nama_kelas => ({ nama_kelas: nama_kelas })); 
             } else {
                 siswaBimbingan = []; // No teacher data found, show no students
@@ -1619,13 +1622,16 @@
         }
         
         // Populate dropdowns based on role
-        setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaBimbingan, displayLastAssessment).populate();
+        // Input Penilaian: SELALU TAMPILKAN SEMUA SISWA (berdasarkan permintaan baru)
+        setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaData, displayLastAssessment).populate();
+        
+        // Laporan: Tampilkan siswa bimbingan (jika guru) atau semua siswa (jika admin)
         setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaBimbingan).populate();
         
         // Public search dropdown on login page MUST show all students
         setupSearchableDropdown('public-student-search-input', 'public-student-options-container', siswaData).populate(); 
         
-        // Laporan class dropdown
+        // Laporan class dropdown: Tampilkan kelas bimbingan (jika guru) atau semua kelas (jika admin)
         populateSelectWithOptions('laporan-pilih-kelas', kelasBimbingan, 'nama_kelas', 'nama_kelas', 'Semua Kelas Tahfizh');
     }
 
@@ -1699,7 +1705,7 @@
     // --- NAVIGATION & INITIALIZATION ---
     document.addEventListener('DOMContentLoaded', async () => {
         await fetchDataFromSupabase();
-        await renderAll();
+        // await renderAll(); // Don't render all yet, wait for login
         
         setupSearchableDropdown('surat-ayat-surat', 'surat-options-container', daftarSurat);
 
@@ -1736,6 +1742,7 @@
             }
             populatePenilaiOptions(user); 
             updateDashboardStats(user); // <-- Pass the user
+            renderAll(); // Re-render all to apply filters
         }
 
         async function handleLogin(event) {
@@ -1754,7 +1761,9 @@
 
             if (user && !error) {
                 currentUser = user;
-                updateUIAfterLogin(currentUser);
+                await fetchDataFromSupabase(); // Fetch data *after* knowing who the user is
+                updateUIAfterLogin(currentUser); // Update UI
+                renderAll(); // Render again with filtered data
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
                 closeModal('staffLoginModal');
