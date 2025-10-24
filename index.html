@@ -1374,6 +1374,21 @@
         const filterSiswaNama = document.getElementById('laporan-search-siswa-input').value;
         
         let dataToRender = penilaianData;
+        
+        // --- MODIFIED: BASE FILTER FOR GURU ---
+        if (currentUser && currentUser.role === 'Guru') {
+            const currentPengajar = pengajarData.find(p => p.nama === currentUser.nama);
+            if (currentPengajar) {
+                const mySiswaIds = siswaData
+                    .filter(s => s.pengajar_id == currentPengajar.id)
+                    .map(s => s.id);
+                dataToRender = penilaianData.filter(p => mySiswaIds.includes(p.siswa_id));
+            } else {
+                dataToRender = []; // No teacher, no data
+            }
+        }
+        // --- END MODIFICATION ---
+
         let mode = 'default';
         let title = 'Laporan Keseluruhan';
 
@@ -1381,13 +1396,13 @@
         if (filterSiswaNama) {
             const siswaObj = getSiswaByNama(filterSiswaNama);
             if(siswaObj) {
-                dataToRender = penilaianData.filter(p => p.siswa_id === siswaObj.id);
+                dataToRender = dataToRender.filter(p => p.siswa_id === siswaObj.id);
                 mode = 'siswa';
                 title = `Laporan untuk: ${siswaObj.nama}`;
             }
         } else if (filterKelas) {
             const siswaDiKelas = siswaData.filter(s => s.kelas_tahfizh === filterKelas).map(s => s.id);
-            dataToRender = penilaianData.filter(p => siswaDiKelas.includes(p.siswa_id));
+            dataToRender = dataToRender.filter(p => siswaDiKelas.includes(p.siswa_id));
             mode = 'kelas';
             title = `Laporan untuk Kelas Tahfizh: ${filterKelas}`;
         }
@@ -1543,7 +1558,7 @@
                 `;
             } else {
                 newRow.innerHTML = `
-                    <td class="p-3">${index + 1}</td>
+                    <td classs="p-3">${index + 1}</td>
                     <td class="p-3">${siswa.nama}</td>
                     <td class="p-3">${kelasGabungan}</td>
                     <td class="p-3 text-gray-400 italic">Belum ada data</td>
@@ -1585,10 +1600,33 @@
         renderKelasTables();
         renderPenggunaTable();
         updateDashboardStats(currentUser); // Pass currentUser
-        setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaData, displayLastAssessment).populate();
-        setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaData).populate();
-        setupSearchableDropdown('public-student-search-input', 'public-student-options-container', siswaData).populate();
-        populateSelectWithOptions('laporan-pilih-kelas', kelasTahfizhData, 'nama_kelas', 'nama_kelas', 'Semua Kelas Tahfizh');
+        
+        // --- Role-based data filtering for dropdowns ---
+        let siswaBimbingan = siswaData;
+        let kelasBimbingan = kelasTahfizhData;
+
+        if (currentUser && currentUser.role === 'Guru') {
+            const currentPengajar = pengajarData.find(p => p.nama === currentUser.nama);
+            if (currentPengajar) {
+                siswaBimbingan = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
+                const kelasSet = new Set(siswaBimbingan.map(s => s.kelas_tahfizh));
+                // Convert Set back to an array of objects for the populator function
+                kelasBimbingan = Array.from(kelasSet).map(nama_kelas => ({ nama_kelas: nama_kelas })); 
+            } else {
+                siswaBimbingan = []; // No teacher data found, show no students
+                kelasBimbingan = [];
+            }
+        }
+        
+        // Populate dropdowns based on role
+        setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaBimbingan, displayLastAssessment).populate();
+        setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaBimbingan).populate();
+        
+        // Public search dropdown on login page MUST show all students
+        setupSearchableDropdown('public-student-search-input', 'public-student-options-container', siswaData).populate(); 
+        
+        // Laporan class dropdown
+        populateSelectWithOptions('laporan-pilih-kelas', kelasBimbingan, 'nama_kelas', 'nama_kelas', 'Semua Kelas Tahfizh');
     }
 
     async function fetchDataFromSupabase() {
