@@ -240,6 +240,9 @@
                     <a href="#penilaian" class="nav-link flex items-center px-4 py-2.5 rounded-lg hover:bg-gray-700">
                         <i class="fas fa-edit w-6"></i> <span>Input Penilaian</span>
                     </a>
+                    <a href="#riwayat-guru" data-role="guru" class="nav-link flex items-center px-4 py-2.5 rounded-lg hover:bg-gray-700 hidden">
+                        <i class="fas fa-history w-6"></i> <span>Riwayat Siswa</span>
+                    </a>
                     <a href="#laporan" class="nav-link flex items-center px-4 py-2.5 rounded-lg hover:bg-gray-700">
                         <i class="fas fa-print w-6"></i> <span>Laporan Penilaian</span>
                     </a>
@@ -342,7 +345,6 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
                     
                     <!-- Siswa Content -->
@@ -476,6 +478,40 @@
                                     </div>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Riwayat Guru Content -->
+                    <div id="riwayat-guru" class="page-content hidden" data-role="guru">
+                        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                            <h2 class="text-xl font-semibold mb-4">Riwayat Penilaian Siswa Bimbingan</h2>
+                            <div class="mb-4">
+                                <label for="riwayat-jenis-penilaian" class="block mb-2 text-sm font-medium text-gray-900">Pilih Jenis Penilaian:</label>
+                                <select id="riwayat-jenis-penilaian" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sitya-green focus:border-sitya-green block w-full md:w-1/3 p-2.5">
+                                    <option value="">Pilih jenis...</option>
+                                    <option value="Iqro">Iqro</option>
+                                    <option value="Hafalan Baru">Hafalan Baru</option>
+                                    <option value="Muroja'ah">Muroja'ah</option>
+                                    <option value="Mengaji">Mengaji</option>
+                                </select>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left" id="riwayat-guru-table">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="p-3">No</th>
+                                            <th class="p-3">Nama Siswa</th>
+                                            <th class="p-3">Kelas</th>
+                                            <th class="p-3">Detail Terakhir</th>
+                                            <th class="p-3">Hasil</th>
+                                            <th class="p-3">Tanggal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data akan diisi oleh JS -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -1450,6 +1486,74 @@
         });
     }
 
+    // --- NEW: RENDER GURU'S RIWAYAT TABLE ---
+    window.renderRiwayatGuruTable = function(user) {
+        const tableBody = document.getElementById('riwayat-guru-table')?.getElementsByTagName('tbody')[0];
+        if (!tableBody || !user || user.role !== 'Guru') {
+            if(tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Hanya guru yang dapat melihat riwayat ini.</td></tr>';
+            return;
+        }
+        
+        const jenisPenilaian = document.getElementById('riwayat-jenis-penilaian').value;
+        if (!jenisPenilaian) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Silakan pilih jenis penilaian untuk melihat riwayat.</td></tr>';
+            return;
+        }
+
+        const currentPengajar = pengajarData.find(p => p.nama === user.nama);
+        if (!currentPengajar) {
+             tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Data pengajar tidak ditemukan.</td></tr>';
+            return;
+        }
+        
+        const mySiswa = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
+        if (mySiswa.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Anda belum memiliki siswa bimbingan.</td></tr>';
+            return;
+        }
+        
+        tableBody.innerHTML = ''; // Clear table
+        
+        mySiswa.forEach((siswa, index) => {
+            const riwayatSiswa = penilaianData
+                .filter(p => p.siswa_id === siswa.id && p.jenis_penilaian === jenisPenilaian)
+                .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+            const newRow = tableBody.insertRow();
+            newRow.className = 'border-b';
+            const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
+            
+            if (riwayatSiswa.length > 0) {
+                const terakhir = riwayatSiswa[0];
+                let detailText = '';
+                if(terakhir.jenis_penilaian === 'Iqro') {
+                    detailText = `Jilid ${terakhir.jilid || '-'}, Hal ${terakhir.halaman || '-'}`;
+                     if(terakhir.baris_dari) detailText += `, Baris ${terakhir.baris_dari}-${terakhir.baris_sampai || ''}`;
+                } else {
+                    detailText = `${terakhir.surat || '-'} Ayat ${terakhir.ayat_dari || '-'}-${terakhir.ayat_sampai || '-'}`;
+                }
+                
+                newRow.innerHTML = `
+                    <td class="p-3">${index + 1}</td>
+                    <td class="p-3">${siswa.nama}</td>
+                    <td class="p-3">${kelasGabungan}</td>
+                    <td class="p-3">${detailText}</td>
+                    <td class="p-3">${terakhir.hasil}</td>
+                    <td class="p-3">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                `;
+            } else {
+                newRow.innerHTML = `
+                    <td class="p-3">${index + 1}</td>
+                    <td class="p-3">${siswa.nama}</td>
+                    <td class="p-3">${kelasGabungan}</td>
+                    <td class="p-3 text-gray-400 italic">Belum ada data</td>
+                    <td class="p-3 text-gray-400 italic">-</td>
+                    <td class="p-3 text-gray-400 italic">-</td>
+                `;
+            }
+        });
+    }
+
 
     // --- RENDER & UPDATE ---
     function updateDashboardStats(user) {
@@ -1685,6 +1789,7 @@
                  Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Penilaian berhasil disimpan!', timer: 1500, showConfirmButton: false });
                 document.getElementById('penilaian-form').reset();
                 document.getElementById('form-penilaian-container').classList.add('hidden');
+                document.getElementById('riwayat-terakhir-container').classList.add('hidden'); // Sembunyikan riwayat
                 await fetchDataFromSupabase();
                 await renderAll();
             }
@@ -1766,6 +1871,11 @@
                     link.classList.remove('bg-gray-700');
                 }
             });
+            
+            // NEW: Jalankan render tabel riwayat jika halaman riwayat guru dibuka
+            if(hash === '#riwayat-guru' && currentUser) {
+                renderRiwayatGuruTable(currentUser);
+            }
 
             if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
                 toggleSidebar();
@@ -1798,6 +1908,9 @@
         document.getElementById('kelasForm').addEventListener('submit', handleKelasFormSubmit);
         document.getElementById('penggunaForm').addEventListener('submit', handlePenggunaFormSubmit);
         document.getElementById('penilaian-form').addEventListener('submit', handlePenilaianFormSubmit);
+        
+        // NEW: Event listener for riwayat-guru dropdown
+        document.getElementById('riwayat-jenis-penilaian').addEventListener('change', () => renderRiwayatGuruTable(currentUser));
 
     });
 
