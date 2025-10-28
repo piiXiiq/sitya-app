@@ -250,11 +250,7 @@
                         <i class="fas fa-users-cog w-6"></i> <span>Kelola Pengguna</span>
                     </a>
                 </nav>
-                <div class="px-4 py-4 border-t border-gray-600">
-                     <a href="#" id="logout-button" class="flex items-center px-4 py-2.5 rounded-lg hover:bg-red-500">
-                        <i class="fas fa-sign-out-alt w-6"></i> <span>Logout</span>
-                    </a>
-                </div>
+                <!-- Tombol logout-button dipindahkan ke header -->
             </aside>
             
             <!-- Main Content -->
@@ -269,9 +265,18 @@
                         </button>
                         <h1 id="page-title" class="text-xl md:text-2xl font-semibold text-gray-700">Dashboard</h1>
                     </div>
-                    <div class="flex items-center">
-                        <span id="welcome-message" class="mr-2 sm:mr-4 text-gray-600 hidden sm:block">Selamat datang, !</span>
-                        <img id="user-avatar" class="w-10 h-10 rounded-full object-cover" src="https://placehold.co/100x100/0A6847/FFFFFF?text=A" alt="Avatar">
+                    <div class="relative">
+                        <button id="avatar-button" class="flex items-center focus:outline-none">
+                            <span id="welcome-message" class="mr-2 sm:mr-4 text-gray-600 hidden sm:block">Selamat datang, !</span>
+                            <img id="user-avatar" class="w-10 h-10 rounded-full object-cover" src="https://placehold.co/100x100/0A6847/FFFFFF?text=A" alt="Avatar">
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+                            <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt w-6 mr-2"></i>Logout
+                            </a>
+                        </div>
                     </div>
                 </header>
 
@@ -858,6 +863,7 @@
 
 <script type="module">
     // --- SUPABASE CLIENT SETUP ---
+    // Gunakan variabel global yang disediakan oleh lingkungan Canvas
     const SUPABASE_URL = 'https://ipzsytmlbdnlwtdxbfgx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenN5dG1sYmRubHd0ZHhiZmd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMTcwNjQsImV4cCI6MjA3MzU5MzA2NH0.3dd66rBy4uCL6w7x2C-Mp3I-V82OGlb2cLLPH-zPlfs';
     const { createClient } = supabase;
@@ -1609,34 +1615,34 @@
         updateDashboardStats(currentUser); // Pass currentUser
         
         // --- Role-based data filtering for dropdowns ---
-        let siswaBimbingan = siswaData;
-        let kelasBimbingan = kelasTahfizhData;
+        let siswaLaporan = siswaData;
+        let kelasLaporan = kelasTahfizhData;
 
         if (currentUser && currentUser.role === 'Guru') {
             const currentPengajar = pengajarData.find(p => p.nama === currentUser.nama);
             if (currentPengajar) {
                 // Filter for Laporan page
-                siswaBimbingan = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
-                const kelasSet = new Set(siswaBimbingan.map(s => s.kelas_tahfizh));
-                kelasBimbingan = Array.from(kelasSet).map(nama_kelas => ({ nama_kelas: nama_kelas })); 
+                siswaLaporan = siswaData.filter(s => s.pengajar_id == currentPengajar.id);
+                const kelasSet = new Set(siswaLaporan.map(s => s.kelas_tahfizh));
+                kelasLaporan = Array.from(kelasSet).map(nama_kelas => ({ nama_kelas: nama_kelas })); 
             } else {
-                siswaBimbingan = []; // No teacher data found, show no students
-                kelasBimbingan = [];
+                siswaLaporan = []; // No teacher data found, show no students
+                kelasLaporan = [];
             }
         }
         
         // Populate dropdowns based on role
-        // Input Penilaian: SELALU TAMPILKAN SEMUA SISWA (berdasarkan permintaan baru)
+        // Input Penilaian: SELALU TAMPILKAN SEMUA SISWA
         setupSearchableDropdown('search-siswa-input', 'siswa-options-container', siswaData, displayLastAssessment).populate();
         
         // Laporan: Tampilkan siswa bimbingan (jika guru) atau semua siswa (jika admin)
-        setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaBimbingan).populate();
+        setupSearchableDropdown('laporan-search-siswa-input', 'laporan-siswa-options-container', siswaLaporan).populate();
         
         // Public search dropdown on login page MUST show all students
         setupSearchableDropdown('public-student-search-input', 'public-student-options-container', siswaData).populate(); 
         
         // Laporan class dropdown: Tampilkan kelas bimbingan (jika guru) atau semua kelas (jika admin)
-        populateSelectWithOptions('laporan-pilih-kelas', kelasBimbingan, 'nama_kelas', 'nama_kelas', 'Semua Kelas Tahfizh');
+        populateSelectWithOptions('laporan-pilih-kelas', kelasLaporan, 'nama_kelas', 'nama_kelas', 'Semua Kelas Tahfizh');
     }
 
     async function fetchDataFromSupabase() {
@@ -1697,8 +1703,9 @@
             riwayatContent.innerHTML = `
                 <span class="font-medium">${new Date(terakhir.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}:</span> ${detailText}
                 <br>
-                <span class="font-medium">Hasil:</span> ${terakhir.hasil}
-                <span class="italic text-gray-500">(dinilai oleh ${pengajar.nama || 'N/A'})</span>
+                <span class="font-medium">Hasil:</span> ${terakhir.hasil} <span class="italic text-gray-500">(dinilai oleh ${pengajar.nama || 'N/A'})</span>
+                <br>
+                <span class="font-medium">Catatan:</span> <span class="italic text-gray-500">${terakhir.catatan || 'Tidak ada catatan'}</span>
             `;
         } else {
             riwayatContent.textContent = 'Belum ada riwayat penilaian untuk jenis ini.';
@@ -1722,6 +1729,24 @@
         const sidebarOverlay = document.getElementById('sidebar-overlay');
         const menuOpenIcon = document.getElementById('menu-open-icon');
         const menuCloseIcon = document.getElementById('menu-close-icon');
+
+        // --- NEW: AVATAR DROPDOWN ---
+        const avatarButton = document.getElementById('avatar-button');
+        const userDropdown = document.getElementById('user-dropdown');
+        
+        if(avatarButton) {
+            avatarButton.addEventListener('click', () => {
+                userDropdown.classList.toggle('hidden');
+            });
+        }
+        
+        // Close dropdown if clicking outside
+        window.addEventListener('click', (e) => {
+            if (userDropdown && avatarButton && !avatarButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                userDropdown.classList.add('hidden');
+            }
+        });
+        // --- END NEW ---
         
         // --- AUTHENTICATION ---
         function updateUIAfterLogin(user) {
@@ -1851,6 +1876,7 @@
         document.getElementById('login-form-modal').addEventListener('submit', handleLogin);
         document.getElementById('logout-button').addEventListener('click', (e) => {
             e.preventDefault();
+            if(userDropdown) userDropdown.classList.add('hidden'); // Also hide dropdown on logout
             handleLogout();
         });
 
@@ -1989,7 +2015,10 @@
         
         titleEl.textContent = `${siswa.nama} - Kelas: ${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
         
-        const dataToRender = penilaianData.filter(p => p.siswa_id === siswa.id);
+        // --- MODIFIED: Sort data by newest first ---
+        const dataToRender = penilaianData
+            .filter(p => p.siswa_id === siswa.id)
+            .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
 
         headEl.innerHTML = `<tr>
             <th class="p-3">Tanggal</th><th class="p-3">Jenis</th><th class="p-3">Detail</th>
@@ -2013,7 +2042,7 @@
                 const newRow = bodyEl.insertRow();
                 newRow.className = 'border-b';
                 newRow.innerHTML = `
-                    <td class="p-3">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                    <td class="p-3">${new Date(item.tanggal).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                     <td class="p-3">${item.jenis_penilaian}</td>
                     <td class="p-3">${detailText}</td>
                     <td class="p-3">${item.hasil}</td>
@@ -2041,4 +2070,5 @@
 
 </body>
 </html>
+
 
