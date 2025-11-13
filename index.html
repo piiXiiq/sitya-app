@@ -67,7 +67,15 @@
         @media print {
             body {
                 font-size: 10pt;
+                overflow: visible !important; /* Perbaikan: Pastikan body tidak memotong */
             }
+
+            /* Perbaikan: Paksa container utama untuk tidak menyembunyikan konten */
+            main, .page-content {
+                overflow: visible !important;
+                display: block !important;
+            }
+
             body * {
                 visibility: hidden;
             }
@@ -196,6 +204,10 @@
                 </div>
                 <button id="back-to-login-button" class="sitya-green text-white px-4 py-2 rounded-lg hover:bg-opacity-90"><i class="fas fa-arrow-left mr-2"></i>Kembali</button>
             </header>
+            <!-- MODIFIED: Informational Text Added Here -->
+<p class="text-sm italic text-gray-600 mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-md">
+    ⚠️ Perhatian: Hanya menampilkan riwayat <strong>3 hari terakhir</strong>. Untuk melihat laporan penilaian yang lebih lama atau keseluruhan, silakan hubungi Pembimbing anak anda.
+</p>
             <div id="public-report-area"> 
                  <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-left">
@@ -331,7 +343,10 @@
 
                         <!-- NEW: Tabel Siswa Bimbingan (Hanya Guru) -->
                         <div class="mt-8 hidden" data-role="guru">
-                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Siswa Bimbingan Anda</h3>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-semibold text-gray-700">Siswa Bimbingan Anda</h3>
+                                <input type="text" id="guru-search-siswa-input" placeholder="Cari siswa bimbingan..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sitya-green focus:border-sitya-green block w-full sm:w-1/3 p-2.5">
+                            </div>
                             <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-left" id="guru-siswa-table">
@@ -357,7 +372,10 @@
                         <div class="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                                 <h2 class="text-xl font-semibold mb-2 sm:mb-0">Data Siswa</h2>
-                                <button onclick="openAddSiswaModal()" class="sitya-green text-white px-4 py-2 rounded-lg hover:bg-opacity-90 w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Tambah Siswa</button>
+                                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                    <input type="text" id="admin-search-siswa-input" placeholder="Cari siswa..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sitya-green focus:border-sitya-green block w-full sm:w-auto p-2.5">
+                                    <button onclick="openAddSiswaModal()" class="sitya-green text-white px-4 py-2 rounded-lg hover:bg-opacity-90 w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Tambah Siswa</button>
+                                </div>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left" id="siswa-table">
@@ -375,6 +393,9 @@
                                         <!-- Data Siswa akan dirender di sini oleh JavaScript -->
                                     </tbody>
                                 </table>
+                            </div>
+                            <div id="pagination-container" class="flex justify-center items-center mt-4">
+                                <!-- Pagination buttons will be rendered here -->
                             </div>
                         </div>
                     </div>
@@ -550,7 +571,7 @@
                                     <input type="date" id="laporan-tanggal-sampai" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sitya-green focus:border-sitya-green block w-full p-2.5">
                                 </div>
                                 <div class="lg:col-span-5 flex justify-end">
-                                    <button onclick="tampilkanLaporan()" class="w-full lg:w-auto sitya-green text-white px-4 py-2.5 rounded-lg hover:bg-opacity-90">Tampilkan Laporan</button>
+                                    <button onclick="filterLaporan()" class="w-full lg:w-auto sitya-green text-white px-4 py-2.5 rounded-lg hover:bg-opacity-90">Tampilkan Laporan</button>
                                 </div>
                             </div>
                             
@@ -575,6 +596,10 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                </div>
+                                
+                                <div id="laporan-pagination-container" class="flex justify-center items-center mt-4">
+                                    <!-- Pagination buttons will be rendered here -->
                                 </div>
 
                                  <div class="flex justify-end mt-6">
@@ -863,7 +888,6 @@
 
 <script type="module">
     // --- SUPABASE CLIENT SETUP ---
-    // Gunakan variabel global yang disediakan oleh lingkungan Canvas
     const SUPABASE_URL = 'https://ipzsytmlbdnlwtdxbfgx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwenN5dG1sYmRubHd0ZHhiZmd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwMTcwNjQsImV4cCI6MjA3MzU5MzA2NH0.3dd66rBy4uCL6w7x2C-Mp3I-V82OGlb2cLLPH-zPlfs';
     const { createClient } = supabase;
@@ -877,6 +901,10 @@
     let penilaianData = [];
     let userData = [];
     let currentUser = null; // Made global for easier access
+    let currentPage = 1;
+    let laporanCurrentPage = 1; // Halaman untuk laporan
+    const rowsPerPage = 10;
+    
     const daftarSurat = [
         "Al-Fatihah", "Al-Baqarah", "Ali 'Imran", "An-Nisa'", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah",
         "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra'", "Al-Kahf", "Maryam", "Taha",
@@ -944,35 +972,143 @@
             select.appendChild(option);
         });
     }
+    
+    // --- NEW: PAGINATION RENDER ---
+    function renderPagination(totalRows) {
+        const paginationContainer = document.getElementById('pagination-container');
+        if (!paginationContainer) return;
+
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        paginationContainer.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous Button
+        let prevButton = document.createElement('button');
+        prevButton.innerHTML = '&laquo; Seb';
+        prevButton.className = "px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 mr-1 disabled:opacity-50 disabled:cursor-not-allowed";
+        if (currentPage === 1) prevButton.disabled = true;
+        prevButton.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderSiswaTable();
+            }
+        };
+        paginationContainer.appendChild(prevButton);
+
+        // Page Info
+        let pageInfo = document.createElement('span');
+        pageInfo.className = "px-3 py-1 text-gray-700";
+        pageInfo.textContent = `Hal ${currentPage} dari ${totalPages}`;
+        paginationContainer.appendChild(pageInfo);
+
+        // Next Button
+        let nextButton = document.createElement('button');
+        nextButton.innerHTML = 'Sel &raquo;';
+        nextButton.className = "px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 ml-1 disabled:opacity-50 disabled:cursor-not-allowed";
+        if (currentPage === totalPages) nextButton.disabled = true;
+        nextButton.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderSiswaTable();
+            }
+        };
+        paginationContainer.appendChild(nextButton);
+    }
+    
+    // --- NEW: LAPORAN PAGINATION RENDER ---
+    function renderLaporanPagination(totalRows) {
+        const paginationContainer = document.getElementById('laporan-pagination-container');
+        if (!paginationContainer) return;
+
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        paginationContainer.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous Button
+        let prevButton = document.createElement('button');
+        prevButton.innerHTML = '&laquo; Seb';
+        prevButton.className = "px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 mr-1 disabled:opacity-50 disabled:cursor-not-allowed";
+        if (laporanCurrentPage === 1) prevButton.disabled = true;
+        prevButton.onclick = () => {
+            if (laporanCurrentPage > 1) {
+                laporanCurrentPage--;
+                tampilkanLaporan(); // Panggil fungsi laporan
+            }
+        };
+        paginationContainer.appendChild(prevButton);
+
+        // Page Info
+        let pageInfo = document.createElement('span');
+        pageInfo.className = "px-3 py-1 text-gray-700";
+        pageInfo.textContent = `Hal ${laporanCurrentPage} dari ${totalPages}`;
+        paginationContainer.appendChild(pageInfo);
+
+        // Next Button
+        let nextButton = document.createElement('button');
+        nextButton.innerHTML = 'Sel &raquo;';
+        nextButton.className = "px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 ml-1 disabled:opacity-50 disabled:cursor-not-allowed";
+        if (laporanCurrentPage === totalPages) nextButton.disabled = true;
+        nextButton.onclick = () => {
+            if (laporanCurrentPage < totalPages) {
+                laporanCurrentPage++;
+                tampilkanLaporan(); // Panggil fungsi laporan
+            }
+        };
+        paginationContainer.appendChild(nextButton);
+    }
+
+
 
     // --- SISWA CRUD FUNCTIONS ---
      function renderSiswaTable() {
         const tableBody = document.getElementById('siswa-table')?.getElementsByTagName('tbody')[0];
         if(!tableBody) return;
-        tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center">Memuat data...</td></tr>';
-        if(siswaData.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Belum ada data siswa.</td></tr>';
+        
+        const searchTerm = document.getElementById('admin-search-siswa-input').value.toLowerCase();
+            
+        const filteredSiswa = siswaData.filter(siswa => 
+            siswa.nama.toLowerCase().includes(searchTerm) || 
+            siswa.nisn.includes(searchTerm) ||
+            siswa.kelas_reguler.toLowerCase().includes(searchTerm) ||
+            siswa.kelas_tahfizh.toLowerCase().includes(searchTerm)
+        );
+        
+        // Pagination logic
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedSiswa = filteredSiswa.slice(startIndex, endIndex);
+
+        tableBody.innerHTML = '';
+        if(paginatedSiswa.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="p-3 text-center text-gray-500">Tidak ada data siswa.</td></tr>';
+            renderPagination(0, 0); // Clear pagination
             return;
         }
-        tableBody.innerHTML = '';
-        siswaData.forEach((siswa, index) => {
+
+        paginatedSiswa.forEach((siswa, index) => {
+            const globalIndex = startIndex + index; // Use this to find in original data
+            const displayNumber = startIndex + index + 1; // Show correct number
             const newRow = tableBody.insertRow();
             newRow.className = 'border-b';
             const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
             const pengajar = pengajarData.find(p => p.id === siswa.pengajar_id) || {};
             newRow.innerHTML = `
-                <td class="p-3">${index + 1}</td>
+                <td class="p-3">${displayNumber}</td>
                 <td class="p-3">${siswa.nisn}</td>
                 <td class="p-3">${siswa.nama}</td>
                 <td class="p-3">${kelasGabungan}</td>
                 <td class="p-3">${pengajar.nama || 'N/A'}</td>
                 <td class="p-3 whitespace-nowrap">
-                    <button onclick="openViewSiswaModal(${index})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-eye"></i></button>
-                    <button onclick="openEditSiswaModal(${index})" class="text-yellow-500 hover:text-yellow-700 mr-2"><i class="fas fa-pencil-alt"></i></button>
+                    <button onclick="openViewSiswaModal(${globalIndex})" class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-eye"></i></button>
+                    <button onclick="openEditSiswaModal(${globalIndex})" class="text-yellow-500 hover:text-yellow-700 mr-2"><i class="fas fa-pencil-alt"></i></button>
                     <button onclick="openDeleteModal('siswa', '${siswa.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                 </td>
             `;
         });
+        
+        renderPagination(filteredSiswa.length);
     }
 
     window.openAddSiswaModal = function() {
@@ -984,8 +1120,9 @@
         openModal('siswaModal');
     }
 
-    window.openEditSiswaModal = function(index) {
-        const siswa = siswaData[index];
+    window.openEditSiswaModal = function(globalIndex) {
+        const siswa = siswaData[globalIndex]; // Get from original data
+        
         document.getElementById('siswaModalTitle').innerText = 'Edit Data Siswa';
         
         populateSelectWithOptions('kelasReguler', kelasRegulerData, 'nama_kelas', 'nama_kelas');
@@ -1002,8 +1139,9 @@
         openModal('siswaModal');
     }
     
-    window.openViewSiswaModal = function(index) {
-        const siswa = siswaData[index];
+    window.openViewSiswaModal = function(globalIndex) {
+        const siswa = siswaData[globalIndex]; // Get from original data
+        
         const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
         const pengajar = pengajarData.find(p => p.id === siswa.pengajar_id) || {};
         document.getElementById('viewNisn').innerText = siswa.nisn;
@@ -1375,6 +1513,12 @@
         return siswaData.find(s => s.nama.toLowerCase() === nama.toLowerCase());
     }
 
+    // --- NEW: Filter Laporan (Resets Page) ---
+    window.filterLaporan = function() {
+        laporanCurrentPage = 1;
+        tampilkanLaporan();
+    }
+
     window.tampilkanLaporan = function() {
         const hasilContainer = document.getElementById('laporan-hasil-container');
         const titleEl = document.getElementById('laporan-title');
@@ -1444,12 +1588,20 @@
         }
         headEl.innerHTML = headerHtml;
 
+        // --- NEW PAGINATION LOGIC ---
+        const sortedData = dataToRender.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+        const totalRows = sortedData.length;
+        const startIndex = (laporanCurrentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedData = sortedData.slice(startIndex, endIndex);
+
         // Generate table body
-        if(dataToRender.length === 0){
+        if(paginatedData.length === 0){
             const colCount = headEl.querySelector('tr').children.length;
             bodyEl.innerHTML = `<tr><td colspan="${colCount}" class="p-3 text-center text-gray-500">Tidak ada data untuk ditampilkan.</td></tr>`;
+            renderLaporanPagination(0); // Clear pagination
         } else {
-             dataToRender.forEach(item => {
+             paginatedData.forEach(item => {
                 const siswa = siswaData.find(s => s.id === item.siswa_id) || {};
                 const pengajar = pengajarData.find(p => p.id === item.penilai_id) || {};
                 const kelasGabungan = `${siswa.kelas_reguler || ''}/${siswa.kelas_tahfizh || ''}`;
@@ -1481,7 +1633,9 @@
 
                 newRow.innerHTML = rowHtml;
             });
+            renderLaporanPagination(totalRows); // Render pagination
         }
+        // --- END PAGINATION LOGIC ---
        
         hasilContainer.classList.remove('hidden');
     }
@@ -1491,15 +1645,22 @@
         const tableBody = document.getElementById('guru-siswa-table')?.getElementsByTagName('tbody')[0];
         if (!tableBody) return;
 
+        const searchTerm = document.getElementById('guru-search-siswa-input').value.toLowerCase();
+
         const mySiswa = siswaData.filter(s => s.pengajar_id == guruId);
         
+        const filteredSiswa = mySiswa.filter(siswa => 
+            siswa.nama.toLowerCase().includes(searchTerm) || 
+            (siswa.nisn && siswa.nisn.includes(searchTerm))
+        );
+        
         tableBody.innerHTML = '';
-        if (mySiswa.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">Anda belum memiliki siswa bimbingan.</td></tr>';
+        if (filteredSiswa.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">Siswa tidak ditemukan.</td></tr>';
             return;
         }
 
-        mySiswa.forEach((siswa, index) => {
+        filteredSiswa.forEach((siswa, index) => {
             const newRow = tableBody.insertRow();
             newRow.className = 'border-b';
             const kelasGabungan = `${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
@@ -1589,9 +1750,22 @@
         document.getElementById('total-pengajar').textContent = pengajarData.length;
         document.getElementById('total-kelas').textContent = kelasRegulerData.length + kelasTahfizhData.length;
 
+        // --- PERBAIKAN ZONA WAKTU ---
+        // 1. Dapatkan tanggal hari ini di zona waktu LOKAL pengguna (Format: YYYY-MM-DD)
         const today = new Date();
-        const todayString = today.toISOString().split('T')[0];
-        const countPenilaianHariIni = penilaianData.filter(p => p.tanggal.startsWith(todayString)).length;
+        const localTodayString = today.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+
+        // 2. Filter data penilaian
+        const countPenilaianHariIni = penilaianData.filter(p => {
+            if (!p.tanggal) return false;
+            // Ubah tanggal UTC dari database ke tanggal LOKAL
+            const assessmentDate = new Date(p.tanggal);
+            const localAssessmentDateString = assessmentDate.toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-');
+            
+            return localAssessmentDateString === localTodayString;
+        }).length;
+        // --- AKHIR PERBAIKAN ---
+        
         document.getElementById('total-penilaian-hari-ini').textContent = countPenilaianHariIni;
         
         // --- NEW GURU STATS ---
@@ -1812,6 +1986,17 @@
         
         async function handlePenilaianFormSubmit(event) {
             event.preventDefault();
+
+            // --- PERBAIKAN DIMULAI DI SINI ---
+            const form = event.target;
+            // Validasi form manual untuk memastikan semua field 'required' terisi
+            if (!form.checkValidity()) {
+                // Memicu validasi bawaan browser untuk menampilkan pesan error
+                form.reportValidity(); 
+                return; // Hentikan fungsi jika form tidak valid
+            }
+            // --- PERBAIKAN SELESAI ---
+
             const btn = document.getElementById('simpan-penilaian-button');
             const btnSpan = btn.querySelector('span');
             btn.disabled = true;
@@ -1989,6 +2174,21 @@
         // NEW: Event listener for riwayat-guru dropdown
         document.getElementById('riwayat-jenis-penilaian').addEventListener('change', () => renderRiwayatGuruTable(currentUser));
 
+        // NEW: Event listener for search inputs
+        document.getElementById('admin-search-siswa-input').addEventListener('keyup', () => {
+            currentPage = 1; // Reset to first page on search
+            renderSiswaTable();
+        });
+
+        document.getElementById('guru-search-siswa-input').addEventListener('keyup', () => {
+            if (currentUser) {
+                const currentPengajar = pengajarData.find(p => p.nama === currentUser.nama);
+                if (currentPengajar) {
+                    renderGuruSiswaTable(currentPengajar.id);
+                }
+            }
+        });
+
     });
 
      function handleStudentReportRequest(event) {
@@ -2016,9 +2216,27 @@
         titleEl.textContent = `${siswa.nama} - Kelas: ${siswa.kelas_reguler}/${siswa.kelas_tahfizh}`;
         
         // --- MODIFIED: Sort data by newest first ---
-        const dataToRender = penilaianData
+        const allSiswaData = penilaianData
             .filter(p => p.siswa_id === siswa.id)
             .sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+        // Get the 3 most recent *unique* dates
+        const uniqueDates = [];
+        allSiswaData.forEach(item => {
+            const dateString = new Date(item.tanggal).toLocaleDateString('id-ID');
+            if (!uniqueDates.includes(dateString)) {
+                uniqueDates.push(dateString);
+            }
+        });
+        const lastThreeDates = uniqueDates.slice(0, 3);
+
+        // Filter the data to include only records from those 3 dates
+        const dataToRender = allSiswaData.filter(item => {
+            const itemDateString = new Date(item.tanggal).toLocaleDateString('id-ID');
+            return lastThreeDates.includes(itemDateString);
+        });
+        // --- END MODIFICATION ---
+
 
         headEl.innerHTML = `<tr>
             <th class="p-3">Tanggal</th><th class="p-3">Jenis</th><th class="p-3">Detail</th>
@@ -2070,5 +2288,3 @@
 
 </body>
 </html>
-
-
